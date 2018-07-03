@@ -1,0 +1,174 @@
+import numpy
+import pandas as pd
+import matplotlib as mpl
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+import matplotlib.pyplot as plt
+from keras.models import load_model
+from keras.callbacks import TensorBoard
+from keras.utils import np_utils
+from sklearn.model_selection import cross_val_predict
+from sklearn import datasets, linear_model
+from sklearn.cross_validation import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import preprocessing
+from sklearn import metrics
+from keras.layers import Dense,Activation,Convolution2D,MaxPooling2D,Flatten,Reshape,Dropout
+
+def mae(predictions, targets):
+    return metrics.mean_absolute_error(targets, predictions)
+def rmse(predictions, targets):
+    return numpy.sqrt(((predictions - targets) ** 2).mean())
+DataX = []
+DataY = []
+epoch = 100
+
+batch_size = 100
+
+wodeann_1 = pd.read_csv('ann_1.csv')
+
+# data_csv = pd.read_csv('dianji_1.csv')
+# y_csv = data_csv[['Te']].values
+# y_csv1 = data_csv.values
+# normalized_train_data = (y_csv1 - numpy.mean(y_csv1, axis=0)) / numpy.std(y_csv1, axis=0)
+# X_csv = numpy.array(range(169))
+# Y = normalized_train_data[range(169)].reshape(507, )
+# YY1 = y_csv1[range(169)].reshape(507, )
+# print('yy1',  YY1)
+# numpy.savetxt('new.csv', YY1, delimiter = ',')
+#
+# for xiaoli in range(0, 507, 3):
+#     xxx = Y[xiaoli : xiaoli + 2]
+#     yyy = Y[xiaoli + 2]
+#     DataX.append([char for char in xxx])
+#     DataY.append(yyy)
+#     print (xxx, '->', yyy)
+
+
+data_csv = pd.read_csv('Te6w.csv')
+y_csv = data_csv[['Te']].values
+y_csv1 = data_csv.values
+normalized_train_data = (y_csv1 - numpy.mean(y_csv1, axis=0)) / numpy.std(y_csv1, axis=0)
+X_csv = numpy.array(range(57120))
+Y = normalized_train_data[range(57120)].reshape(171360, )
+YY1 = y_csv1[range(57120)].reshape(171360, )
+print('yy1',  YY1)
+numpy.savetxt('new.csv', YY1, delimiter = ',')
+
+for xiaoli in range(0, 171360, 3):
+    xxx = Y[xiaoli : xiaoli + 2]
+    yyy = Y[xiaoli + 2]
+    DataX.append([char for char in xxx])
+    DataY.append(yyy)
+    print (xxx, '->', yyy)
+
+y1 = numpy.array(DataY).reshape(len(DataY), 1)
+print(y1.shape)
+print(type(y1))
+
+X_train, X_test, y_train, y_test = train_test_split(DataX, y1, random_state=1)
+
+X_train = numpy.reshape(X_train,  (len(X_train), 1, 2, 1))
+y_train = y_train
+
+X_test = numpy.reshape(X_test,  (len(X_test), 1, 2, 1))
+y_test = y_test
+print(X_train)
+print('X_train.shape[1]', X_train.shape[1])
+print('X_train.shape[2])', X_train.shape[2])
+print('X_train.shape', X_train.shape)
+print('X_test.shape[1]',X_test.shape[1])
+print('X_test.shape[2])', X_test.shape[2])
+print('X_test.shape', X_test.shape)
+
+
+model = Sequential()
+model.add(Convolution2D(1, kernel_size=(1, 1), strides=(1, 1),
+                 activation='relu',
+                 input_shape=X_train.shape[-3:]))
+model.add(Flatten())
+model.add(Dense(5, activation='relu'))
+model.add(Dense(1))
+model.compile(loss='mean_squared_error', optimizer='adam')
+print(y_train)
+model.summary()
+model.fit(X_train, y_train, epochs=epoch, batch_size=batch_size, verbose=2,callbacks=[TensorBoard(log_dir='./tmp/MTPA_3')],  validation_split=0.1 )
+model.save('my_lstm_te_2.h5')
+model = load_model('my_lstm_te_1.h5')
+model.summary()
+
+
+model.get_weights()
+print(model.get_weights())
+print('x_text[0]', X_test)
+
+prediction = model.predict(X_test, verbose=0)
+print('prediction', prediction)
+prediction = prediction * numpy.std(y_csv1, axis=0)[2] + numpy.mean(y_csv1, axis=0)[2]
+
+
+print('chengshu1.........................', numpy.std(y_csv1, axis=0)[2])
+print('chengshu2.........................', numpy.mean(y_csv1, axis=0)[2])
+
+print('chengshu1.........................', numpy.std(y_csv1, axis=0)[0])
+print('chengshu2.........................', numpy.mean(y_csv1, axis=0)[0])
+
+print('chengshu1.........................', numpy.std(y_csv1, axis=0)[1])
+print('chengshu2.........................', numpy.mean(y_csv1, axis=0)[1])
+
+y_test = y_test * numpy.std(y_csv1, axis=0)[2] + numpy.mean(y_csv1, axis=0)[2]
+
+
+print('prediction_final', prediction)
+print('y_test', y_test)
+
+
+for i  in range(len(y_test)-1):
+    print('wucha', prediction[i] - y_test[i])
+print('y_test', y_test)
+print('prediction', prediction)
+print('y_test.shape', y_test.shape)
+print('mae', mae(prediction, y_test))
+print('rmse', rmse(prediction, y_test))
+print('mase.type', type(mae(prediction, y_test)))
+print('rmase.type', type(rmse(prediction, y_test)))
+
+
+zhfont = mpl.font_manager.FontProperties(fname='/usr/share/fonts/opentype/noto/simsun.ttc', size = 18)
+
+fig, ax = plt.subplots(nrows=1, ncols=1)
+#plt.grid(True)
+
+plt.legend(loc = 0) #图例位置自动
+
+# ax.scatter(range(100), prediction[0:100],linewidth=1.5, label="观测值", marker = '+')
+# ax.scatter(range(100), y_test[0:100], linewidth=1.5, label="真实值", alpha=0.5)
+# ax.set_xlabel('测试点（个）', fontsize=16, fontproperties = zhfont)
+# ax.set_ylabel('LSTM观测器观测的转矩（N·m）', fontsize=18, fontproperties = zhfont)
+
+
+ax.plot((prediction[0:2000] - y_test[0:2000])/4,linewidth=1,)
+ax.set_xlabel('测试点(个)', fontsize=18, fontproperties = zhfont)
+ax.set_ylabel('误差转矩(N·m)', fontsize=18, fontproperties = zhfont)
+
+# ann_1 = wodeann_1[['0']].values
+# ax[1].plot(ann_1)
+
+# plt.xlim(-5, 120)  # 限定横轴的范围
+# plt.ylim(-5, 120)  # 限定纵轴的范围
+
+plt.xlim(0, 2000)  # 限定横轴的范围
+plt.ylim(-0.4, 0.8)  # 限定纵轴的范围
+
+
+plt.legend(loc='best',frameon=False, fontsize=18, prop=zhfont) #去掉图例边框
+# plt.savefig('%d.jpg' % batch_size,dpi=100, bbox_inches='tight')
+# with open('baogao.txt', 'w+') as f:
+#     f.write('mae= %2f       rmse= %%2f' % mae(prediction, y_test) % mae(prediction, y_test))
+
+
+plt.savefig("examples.jpg")
+plt.show()
+
