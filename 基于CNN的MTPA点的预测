@@ -1,0 +1,119 @@
+import numpy
+import pandas as pd
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+import matplotlib.pyplot as plt
+from keras.models import load_model
+from keras.callbacks import TensorBoard
+from keras.utils import np_utils
+from sklearn.model_selection import cross_val_predict
+from sklearn import datasets, linear_model
+from sklearn.cross_validation import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import preprocessing
+from sklearn import metrics
+from keras.layers import Dense,Activation,Convolution2D,MaxPooling2D,Flatten,Reshape
+
+def mae(predictions, targets):
+    return metrics.mean_absolute_error(targets, predictions)
+def rmse(predictions, targets):
+    return numpy.sqrt(((predictions - targets) ** 2).mean())
+DataX = []
+DataY = []
+epoch = 1000
+cell = 28
+batch_size = 100
+data_csv = pd.read_csv("data/2d-wm50-1500-1.0-1.0-1.0.csv")
+y_csv1 = data_csv.values
+normalized_train_data = (y_csv1 - numpy.mean(y_csv1, axis=0)) / numpy.std(y_csv1, axis=0)
+X_csv = numpy.array(range(37440))
+Y = normalized_train_data[range(37440)].reshape(374400, )
+print(Y)
+for xiaoli in range(0, 374400, 10):
+    xxx = Y[xiaoli : xiaoli + 9]
+    yyy = Y[xiaoli + 9]
+    DataX.append([char for char in xxx])
+    DataY.append(yyy)
+    print (xxx, '->', yyy)
+y1 = numpy.array(DataY).reshape(len(DataY), 1)
+print(y1.shape)
+print(type(y1))
+
+X_train = DataX[0:35000]
+X_test = DataX[37000:-1]
+
+y_train = y1[0:35000]
+y_test = y1[37000:-1]
+
+channel = 1
+
+X_train = numpy.reshape(X_train,  (len(X_train), 1, 9, 1))
+X_test = numpy.reshape(X_test,  (len(X_test), 1, 9, 1))
+
+print('X_train', X_train)
+print('X_train.shape[1]', X_train.shape[1])
+print('X_train.shape[2])', X_train.shape[2])
+print('X_train.shape', X_train.shape)
+print('X_test.shape[1]',X_test.shape[1])
+print('X_test.shape[2])', X_test.shape[2])
+print('X_test.shape', X_test.shape)
+print('X_train.shape[-3:]', X_train.shape[-3:])
+
+
+model = Sequential()
+model.add(Convolution2D(32, kernel_size=(1, 3), strides=(1, 1),
+                 activation='relu',
+                 input_shape=X_train.shape[-3:]))
+#keras.layers.normalization.BatchNormalization(epsilon=1e-06, mode=0, axis=-1, momentum=0.9, weights=None, beta_init='zero', gamma_init='one')
+model.add(Convolution2D(32, (1, 3), activation='relu'))
+#keras.layers.normalization.BatchNormalization(epsilon=1e-06, mode=0, axis=-1, momentum=0.9, weights=None, beta_init='zero', gamma_init='one')
+model.add(Flatten())
+# model.add(Dense(512))
+#model.add(Reshape((1, 128)))
+model.add(Dense(256, activation='relu'))
+model.add(Dense(256, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1))
+
+model.compile(loss='mean_squared_error', optimizer='adam')
+print(y_train)
+model.summary()
+model.fit(X_train, y_train, epochs=epoch, batch_size=batch_size, verbose=2,callbacks=[TensorBoard(log_dir='./tmp/MTPA_3')],  validation_split=0.3 )
+model.summary()
+model.save('my_model.h5_3')
+model = load_model('my_model.h5_3')
+prediction = model.predict(X_test, verbose=0)
+
+prediction = prediction * numpy.std(y_csv1, axis=0)[9] + numpy.mean(y_csv1, axis=0)[9]
+y_test = y_test * numpy.std(y_csv1, axis=0)[9] + numpy.mean(y_csv1, axis=0)[9]
+wucha = []
+for i  in range(len(y_test)-1):
+    print('wucha', prediction[i] - y_test[i])
+    wucha.append(prediction[i] - y_test[i])
+print('y_test', y_test)
+print('prediction', prediction)
+print('y_test.shape', y_test.shape)
+print('mae', mae(prediction, y_test))
+print('rmse', rmse(prediction, y_test))
+print('mase.type', type(mae(prediction, y_test)))
+print('rmase.type', type(rmse(prediction, y_test)))
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+ax[0].scatter(range(len(prediction)), prediction, marker = 'o', label='3', s = 80)
+#plot(x,y,'.','markersize',8)%默认为6
+ax[0].scatter(range(len(prediction)), y_test)
+ax[0].set_xlabel('shuju')
+ax[0].set_ylabel('lstm Predicted beta/te')
+
+ax[1].plot(prediction - y_test)
+ax[1].set_xlabel('shuju')
+ax[1].set_ylabel(' wucha value')
+# plt.text(400, 0.03, 'haiaaaaa',
+#          fontdict={'size': 16, 'color': 'r'})
+plt.show()
+
+
+
+
