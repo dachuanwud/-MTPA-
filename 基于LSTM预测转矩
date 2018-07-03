@@ -1,0 +1,126 @@
+import numpy
+import pandas as pd
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from keras.models import load_model
+from keras.utils import plot_model
+from keras.utils import np_utils
+from sklearn.model_selection import cross_val_predict
+from sklearn import datasets, linear_model
+from sklearn.cross_validation import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import preprocessing
+from sklearn import metrics
+from keras.callbacks import TensorBoard
+#解决中文显示问题
+plt.rcParams['font.sans-serif']=['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+def mae(predictions, targets):
+    return metrics.mean_absolute_error(targets, predictions)
+def rmse(predictions, targets):
+    return numpy.sqrt(((predictions - targets) ** 2).mean())
+DataX = []
+DataY = []
+
+epoch = 500
+cell = 28
+batch_size = 1
+
+wodeann_1 = pd.read_csv('ann_1.csv')
+data_csv = pd.read_csv('dianji_1.csv')
+y_csv = data_csv[['Te']].values
+y_csv1 = data_csv.values
+normalized_train_data = (y_csv1 - numpy.mean(y_csv1, axis=0)) / numpy.std(y_csv1, axis=0)
+X_csv = numpy.array(range(169))
+Y = normalized_train_data[range(169)].reshape(507, )
+YY1 = y_csv1[range(169)].reshape(507, )
+print('yy1',  YY1)
+numpy.savetxt('new.csv', YY1, delimiter = ',')
+
+for xiaoli in range(0, 507, 3):
+    xxx = Y[xiaoli : xiaoli + 2]
+    yyy = Y[xiaoli + 2]
+    DataX.append([char for char in xxx])
+    DataY.append(yyy)
+    print (xxx, '->', yyy)
+
+y1 = numpy.array(DataY).reshape(len(DataY), 1)
+print(y1.shape)
+print(type(y1))
+
+X_train, X_test, y_train, y_test = train_test_split(DataX, y1, random_state=1)
+#X_train = numpy.reshape(X_train, (len(X_train), 2, 1))
+X_train = numpy.reshape(X_train, (-1, 2, 1))
+y_train = y_train
+
+#X_test = numpy.reshape(X_test, (len(X_test), 2, 1))
+X_test = numpy.reshape(X_test, (-1, 2, 1))
+y_test = y_test
+print(X_train)
+print('X_train.shape[1]', X_train.shape[1])
+print('X_train.shape[2])', X_train.shape[2])
+print('X_train.shape', X_train.shape)
+
+print('X_test.shape[1]',X_test.shape[1])
+print('X_test.shape[2])', X_test.shape[2])
+print('X_test.shape', X_test.shape)
+
+model = Sequential()
+model.add(LSTM(28, input_shape=(X_train.shape[1], X_train.shape[2])))
+
+model.add(Dense(1))
+
+model.compile(loss='mean_squared_error', optimizer='adam')
+print(y_train)
+model.fit(X_train, y_train, nb_epoch=epoch, batch_size=batch_size, verbose=2, callbacks=[TensorBoard(log_dir='./tmp/log')], validation_data=(X_test, y_test))
+summarize performance of the model
+model.save('my_lstm_te.h5')
+model = load_model('my_lstm_te.h5')
+model.summary()
+prediction = model.predict(X_test, verbose=0)
+
+prediction = prediction * numpy.std(y_csv1, axis=0)[2] + numpy.mean(y_csv1, axis=0)[2]
+
+y_test = y_test * numpy.std(y_csv1, axis=0)[2] + numpy.mean(y_csv1, axis=0)[2]
+
+for i  in range(len(y_test)-1):
+    print('wucha', prediction[i] - y_test[i])
+print('y_test', y_test)
+print('prediction', prediction)
+print('y_test.shape', y_test.shape)
+print('mae', mae(prediction, y_test))
+print('rmse', rmse(prediction, y_test))
+print('mase.type', type(mae(prediction, y_test)))
+print('rmase.type', type(rmse(prediction, y_test)))
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
+zhfont = mpl.font_manager.FontProperties(fname='/usr/share/fonts/opentype/noto/simsun.ttc', size = 18)
+font1 = {'family' : 'Times New Roman',
+'weight' : 'normal',
+'size'   : 16,
+}
+# ax[0].scatter(range(43), prediction)
+# ax[0].scatter(range(43), y_test)
+# ax[0].set_xlabel('shujudian')
+# ax[0].set_ylabel('lstm Predicted Te')
+
+ax.plot((prediction - y_test)/5 ,linewidth=1, label="通过LSTM网络的观测器")
+ax.set_xlabel('测试点（个）', fontsize=18, fontproperties=zhfont)
+ax.set_ylabel('观测误差（N·m）', fontsize=18, fontproperties=zhfont)
+ann_1 = wodeann_1[['0']].values
+ax.plot(ann_1,linewidth=1,color='red' ,label="通过BP网络的观测器")
+
+# plt.savefig('%d.jpg' % batch_size,dpi=100, bbox_inches='tight')
+# with open('baogao.txt', 'w+') as f:
+#     f.write('mae= %2f       rmse= %%2f' % mae(prediction, y_test) % mae(prediction, y_test))
+
+#plt.xlim(-1, 11)  # 限定横轴的范围
+plt.ylim(-10, 10)  # 限定纵轴的范围
+plt.xticks(fontsize = 16)
+plt.yticks(fontsize = 16)
+plt.legend(loc='best',frameon=False, fontsize=22, prop=zhfont) #去掉图例边框
+plt.savefig("examples.jpg")
+plt.show()
