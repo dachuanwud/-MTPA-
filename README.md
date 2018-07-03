@@ -3,4 +3,6 @@
 3. 推荐一个深度学习的社区 [集智社区](https://jizhi.im/community/discuss/2017-03-13-10-9-2-pm) 里面的深度学习的详细教程。  
 4. 代码包括  
 + 基于LSTM预测电机转矩  
-+ 基于CNN预测电机转矩及MTPA 
++ 基于CNN预测电机MTPA点 
++ 基于CNN的预测电机转矩  
++ 基于LSTM预测电机MTPA点
